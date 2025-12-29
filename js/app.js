@@ -1297,9 +1297,12 @@ const App = () => {
 
     if (loading) return <div className="h-screen bg-slate-900 flex items-center justify-center text-amber-500 font-bold">CARGANDO...</div>;
 
-    if (!user || !user.displayName) return <AuthScreen onLogin={u => {
+    if (!user) return <AuthScreen onLogin={u => {
         const isAuthAdmin = (u.email && ((bizAdminEmail && u.email === bizAdminEmail) || u.email === ADMIN_EMAIL));
         const fullUser = { ...auth.currentUser, ...u, isAdmin: isAuthAdmin };
+        // Validar nombre para admins creados desde panel
+        if (!fullUser.displayName && isAuthAdmin) fullUser.displayName = 'Administrador';
+
         setUser(fullUser);
         setView(isAuthAdmin ? 'admin' : 'home');
     }} deferredPrompt={deferredPrompt} handleInstallClick={handleInstall} bizName={bizName} subtitle={bizSubtitle} />;

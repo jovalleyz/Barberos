@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff, Users } from 'lucide-react';
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, updateProfile, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, updateDoc, doc, onSnapshot, where, writeBatch, setDoc } from "firebase/firestore";
@@ -598,11 +598,46 @@ const SuperAdminDashboard = ({ onLogout }) => {
     const [editingBiz, setEditingBiz] = useState(null); // For edit modal
     const [deleteId, setDeleteId] = useState(null); // For delete modal
     const [alertData, setAlertData] = useState({ show: false, title: '', msg: '' });
-    const [view, setView] = useState('home');
+
+    // Feature States
+    const [view, setView] = useState('home'); // home, team, profile
+    const [team, setTeam] = useState([]);
+    const [currentAdmin, setCurrentAdmin] = useState(null); // The logged in admin user doc
 
     // Profile Feature States
     const [showEditProfile, setShowEditProfile] = useState(false);
     const [profileForm, setProfileForm] = useState({ displayName: '', phone: '' });
+
+    // Team Management States
+    const [showTeamModal, setShowTeamModal] = useState(false);
+    const [editingMember, setEditingMember] = useState(null);
+    const [teamForm, setTeamForm] = useState({ displayName: '', email: '', password: '', phone: '', role: 'sales' });
+
+    // Initial Load: Identify who I am (Super or Sales)
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        const checkAdminRole = async () => {
+            // 1. Try to find myself in admin_users
+            const q = query(collection(db, 'admin_users'), where('uid', '==', auth.currentUser.uid));
+            const sn = await getDocs(q);
+            if (!sn.empty) {
+                const adminDoc = { id: sn.docs[0].id, ...sn.docs[0].data() };
+                setCurrentAdmin(adminDoc);
+                // Update Last Login
+                await updateDoc(doc(db, 'admin_users', adminDoc.id), { lastLogin: new Date().toISOString() });
+            } else {
+                // Should be Super Admin (manual or first time)
+                // If I am the main super admin (by email constant), I see everything
+                if (auth.currentUser.email === ADMIN_EMAIL || auth.currentUser.email === 'admin@yoel.com' || auth.currentUser.email === 'yoel@barberos.com') { // Hardcoded Super Admins for now
+                    setCurrentAdmin({ role: 'super', displayName: auth.currentUser.displayName, uid: auth.currentUser.uid });
+                } else {
+                    // Fallback for new super admins created without doc yet
+                    setCurrentAdmin({ role: 'super', uid: auth.currentUser.uid });
+                }
+            }
+        };
+        checkAdminRole();
+    }, []);
 
     useEffect(() => {
         if (view === 'profile' && auth.currentUser) {
@@ -643,15 +678,35 @@ const SuperAdminDashboard = ({ onLogout }) => {
     const [showChangePass, setShowChangePass] = useState(false);
 
     useEffect(() => {
-        document.title = "Barberos - Panel Super Admin"; // Set title
-        const q = query(collection(db, 'businesses'));
-        const unsub = onSnapshot(q, (sn) => {
+        document.title = "Barberos - Panel Super Admin";
+
+        // 1. Subscribe to Businesses
+        const qBiz = query(collection(db, 'businesses')); // We filter dynamically in render or here based on role
+        const unsubBiz = onSnapshot(qBiz, (sn) => {
             const list = sn.docs.map(d => ({ id: d.id, ...d.data() }));
-            setBusinesses(list);
-            setStats({ active: list.filter(b => b.status === 'active').length, total: list.length });
+            // Filter by Scope if Sales Agent
+            if (currentAdmin && currentAdmin.role === 'sales') {
+                const myBiz = list.filter(b => b.createdBy === auth.currentUser.uid);
+                setBusinesses(myBiz);
+                setStats({ active: myBiz.filter(b => b.status === 'active').length, total: myBiz.length });
+            } else {
+                setBusinesses(list);
+                setStats({ active: list.filter(b => b.status === 'active').length, total: list.length });
+            }
         });
-        return unsub;
-    }, []);
+
+        // 2. Subscribe to Team (Only if Super Admin)
+        // Ideally we check permission, but for now we fetch all and hide UI
+        const qTeam = query(collection(db, 'admin_users'));
+        const unsubTeam = onSnapshot(qTeam, (sn) => {
+            setTeam(sn.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
+        // 3. Notify Super Admin of new businesses (Simple check)
+        // ... (Skipping complex realtime diffing for now to keep it simple, focus on list view)
+
+        return () => { unsubBiz(); unsubTeam(); };
+    }, [currentAdmin]);
 
     const handleSaveBusiness = async (formData) => {
         if (!formData.name) return alert('Nombre requerido');
@@ -660,7 +715,12 @@ const SuperAdminDashboard = ({ onLogout }) => {
                 name: formData.name,
                 subtitle: formData.subtitle || '',
                 adminEmail: formData.adminEmail,
-                status: formData.status || 'active'
+                status: formData.status || 'active',
+                // Add Creator Tracking if new
+                ...(!formData.id ? {
+                    createdBy: auth.currentUser.uid,
+                    createdByName: currentAdmin?.displayName || auth.currentUser.displayName || 'Admin'
+                } : {})
             };
             // Note: Password handling should ideally be done via Firebase Auth Admin SDK on backend
             // For now, we just save it to DB if testing (SECURITY WARNING), or assume user handles reset
@@ -728,6 +788,128 @@ const SuperAdminDashboard = ({ onLogout }) => {
     // Simulated Revenue Calculation
     const totalRevenue = useMemo(() => stats.active * 5000, [stats.active]);
 
+    // Team Management Helpers
+    const handleSaveMember = async () => {
+        if (!teamForm.email || !teamForm.displayName) return alert('Datos incompletos');
+
+        try {
+            if (editingMember) {
+                // Edit Info Only (Cannot change pass/email easily in Auth from here without Admin SDK)
+                await updateDoc(doc(db, 'admin_users', editingMember.id), {
+                    displayName: teamForm.displayName,
+                    phone: teamForm.phone
+                });
+                setAlertData({ show: true, title: 'Éxito', msg: 'Miembro actualizado' });
+            } else {
+                // Create New Sales Admin
+                if (!teamForm.password) return alert('Contraseña requerida');
+
+                // 1. Create in Firebase Auth (Secondary)
+                const secondaryApp = initializeApp(firebaseConfig, "SecondaryTeam");
+                const secondaryAuth = getAuth(secondaryApp);
+                const userCred = await createUserWithEmailAndPassword(secondaryAuth, teamForm.email, teamForm.password);
+                const uid = userCred.user.uid;
+                await deleteApp(secondaryApp);
+
+                // 2. Create in DB
+                await addDoc(collection(db, 'admin_users'), {
+                    uid: uid,
+                    email: teamForm.email,
+                    displayName: teamForm.displayName,
+                    phone: teamForm.phone || '',
+                    role: 'sales', // Default role
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null
+                });
+                setAlertData({ show: true, title: 'Éxito', msg: 'Agente creado correctamente' });
+            }
+            setShowTeamModal(false); setEditingMember(null); setTeamForm({ displayName: '', email: '', password: '', phone: '' });
+        } catch (e) {
+            console.error(e);
+            setAlertData({ show: true, title: 'Error', msg: e.message });
+        }
+    };
+
+    const handleDeleteMember = async (id) => {
+        if (confirm('¿Eliminar este usuario? Perderá acceso inmediato.')) {
+            await deleteDoc(doc(db, 'admin_users', id));
+            setAlertData({ show: true, title: 'Eliminado', msg: 'El usuario ha sido eliminado de la base de datos.' });
+        }
+    };
+
+    const renderTeam = () => (
+        <div className="p-4 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold font-bold text-white">Gestión de Equipo</h2>
+                    <p className="text-sm text-slate-400">Total: {team.length} administradores</p>
+                </div>
+                <button onClick={() => { setEditingMember(null); setTeamForm({ displayName: '', email: '', password: '', phone: '', role: 'sales' }); setShowTeamModal(true); }} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-xl font-bold flex items-center gap-2">
+                    <Plus size={20} /> Nuevo Miembro
+                </button>
+            </div>
+
+            <div className="grid gap-4">
+                {team.length === 0 ? <div className="text-center p-8 text-slate-500 italic bg-slate-800/50 rounded-xl">No hay miembros registrados.</div> :
+                    team.map(member => (
+                        <div key={member.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row items-center gap-4 justify-between">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className={`p-3 rounded-full ${member.role === 'super' ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-400'}`}>
+                                    {member.role === 'super' ? <Shield size={24} /> : <User size={24} />}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                                        {member.displayName}
+                                        <span className={`text-[10px] px-2 py-0.5 rounded border ${member.role === 'super' ? 'bg-amber-500 text-slate-900 border-amber-500 font-bold' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                                            {member.role === 'super' ? 'SUPER ADMIN' : 'VENTAS'}
+                                        </span>
+                                    </h3>
+                                    <p className="text-sm text-slate-400">{member.email}</p>
+                                    <p className="text-xs text-slate-500">{member.phone}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                                <div className="text-right">
+                                    <p className="text-[10px] text-slate-500 uppercase font-bold">Última Conexión</p>
+                                    <p className="text-xs font-mono text-green-400">{member.lastLogin ? new Date(member.lastLogin).toLocaleString() : 'Nunca'}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setEditingMember(member); setTeamForm({ displayName: member.displayName, email: member.email, phone: member.phone, password: '', role: member.role || 'sales' }); setShowTeamModal(true); }} className="p-2 bg-slate-700 rounded-lg text-blue-400 hover:bg-slate-600"><Edit2 size={18} /></button>
+                                    <button onClick={() => handleDeleteMember(member.id)} className="p-2 bg-slate-700 rounded-lg text-red-400 hover:bg-slate-600"><Trash2 size={18} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                }
+            </div>
+
+            {showTeamModal && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 text-white">{editingMember ? 'Editar Miembro' : 'Nuevo Miembro'}</h3>
+                        <div className="space-y-3 mb-6">
+                            <div><label className="text-xs text-slate-400">Rol</label>
+                                <div className="flex gap-2 mt-1">
+                                    <button onClick={() => setTeamForm({ ...teamForm, role: 'sales' })} className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${teamForm.role === 'sales' ? 'bg-slate-200 text-slate-900 border-white' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>Ventas</button>
+                                    <button onClick={() => setTeamForm({ ...teamForm, role: 'super' })} className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${teamForm.role === 'super' ? 'bg-amber-500 text-slate-900 border-amber-500' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>Super Admin</button>
+                                </div>
+                            </div>
+                            <div><label className="text-xs text-slate-400">Nombre</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.displayName} onChange={e => setTeamForm({ ...teamForm, displayName: e.target.value })} /></div>
+                            {!editingMember && <div><label className="text-xs text-slate-400">Email</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.email} onChange={e => setTeamForm({ ...teamForm, email: e.target.value })} /></div>}
+                            {!editingMember && <div><label className="text-xs text-slate-400">Contraseña</label><input type="password" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.password} onChange={e => setTeamForm({ ...teamForm, password: e.target.value })} /></div>}
+                            <div><label className="text-xs text-slate-400">Teléfono</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.phone} onChange={e => setTeamForm({ ...teamForm, phone: e.target.value })} /></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowTeamModal(false)} className="flex-1 py-3 bg-slate-700 rounded-xl text-slate-300">Cancelar</button>
+                            <button onClick={handleSaveMember} className="flex-1 py-3 bg-amber-500 text-slate-900 font-bold rounded-xl">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-slate-900 text-white pb-24">
             {/* Header */}
@@ -781,11 +963,17 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                 </div>
                                 <div className="text-xs text-slate-400">
                                     <p>{biz.adminEmail}</p>
-                                    <p className="mt-1 opacity-75">Registro: {biz.createdAt && typeof biz.createdAt === 'string' ? new Date(biz.createdAt).toLocaleDateString() : 'N/A'}</p>
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <p className="opacity-75">Registro: {biz.createdAt && typeof biz.createdAt === 'string' ? new Date(biz.createdAt).toLocaleDateString() : 'N/A'}</p>
+                                        {biz.createdByName && <p className="text-amber-500/80">Agente: {biz.createdByName}</p>}
+                                        {biz.lastLogin && <p className="text-green-400/80 font-mono">Activo: {new Date(biz.lastLogin).toLocaleDateString()} {new Date(biz.lastLogin).toLocaleTimeString()}</p>}
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 mt-2 pt-3 border-t border-slate-700">
                                     <button onClick={() => { setEditingBiz(biz); setShowModal(true); }} className="flex-1 py-3 bg-slate-700 rounded-lg text-blue-300 text-sm font-bold hover:bg-slate-600 uppercase tracking-wider">EDITAR</button>
-                                    <button onClick={() => handleDeleteBusiness(biz.id)} className="flex-1 py-3 bg-slate-700 rounded-lg text-red-400 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">ELIMINAR</button>
+                                    {((currentAdmin && currentAdmin.role === 'super') || (!currentAdmin)) && (
+                                        <button onClick={() => handleDeleteBusiness(biz.id)} className="flex-1 py-3 bg-slate-700 rounded-lg text-red-400 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">ELIMINAR</button>
+                                    )}
                                     <button onClick={() => toggleStatus(biz.id, biz.status)} className="flex-1 py-3 bg-slate-700 rounded-lg text-slate-300 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">
                                         {biz.status === 'active' ? 'Suspender' : 'Activar'}
                                     </button>
@@ -907,14 +1095,31 @@ const SuperAdminDashboard = ({ onLogout }) => {
                 )
             }
 
+            {view === 'team' && renderTeam()}
+
             {/* Bottom Navigation */}
             <div className="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-xl border-t border-slate-800 px-6 py-2 flex justify-around items-center z-50 pb-safe">
                 <button onClick={() => setView('home')} className={`p-2 rounded-2xl flex flex-col items-center gap-1 transition-all w-16 group ${view === 'home' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}>
                     <div className={`p-1 rounded-xl transition-all ${view === 'home' ? 'bg-amber-500/20' : 'group-hover:bg-slate-800'}`}>
                         <Home size={24} strokeWidth={view === 'home' ? 2.5 : 2} />
                     </div>
-                    <span className="text-[10px] font-bold">Inicio</span>
+                    <span className="text-[10px] font-bold">Negocios</span>
                 </button>
+
+                {/* Team Tab - Only for Super Admins */}
+                {(
+                    (currentAdmin && currentAdmin.role === 'super') ||
+                    (!currentAdmin) ||
+                    (auth.currentUser && (auth.currentUser.email === 'yoel@barberos.com' || auth.currentUser.email === 'admin@yoel.com' || auth.currentUser.email === ADMIN_EMAIL))
+                ) && (
+                        <button onClick={() => setView('team')} className={`p-2 rounded-2xl flex flex-col items-center gap-1 transition-all w-16 group ${view === 'team' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}>
+                            <div className={`p-1 rounded-xl transition-all ${view === 'team' ? 'bg-amber-500/20' : 'group-hover:bg-slate-800'}`}>
+                                <Users size={24} strokeWidth={view === 'team' ? 2.5 : 2} />
+                            </div>
+                            <span className="text-[10px] font-bold">Equipo</span>
+                        </button>
+                    )}
+
                 <button onClick={() => setView('stats')} className={`p-2 rounded-2xl flex flex-col items-center gap-1 transition-all w-16 group ${view === 'stats' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}>
                     <div className={`p-1 rounded-xl transition-all ${view === 'stats' ? 'bg-amber-500/20' : 'group-hover:bg-slate-800'}`}>
                         <TrendingUp size={24} strokeWidth={view === 'stats' ? 2.5 : 2} />
@@ -982,13 +1187,24 @@ const LandingView = ({ onSuperAdminLogin }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [email, setEmail] = useState(''); const [pass, setPass] = useState('');
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Simple hardcoded check for demo purposes, in real app authenticate against super_users collection
-        if (email === 'admin@saas.com' && pass === 'admin123') {
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
             onSuperAdminLogin();
-        } else {
-            alert('Credenciales inválidas');
+        } catch (error) {
+            console.error(error);
+            alert('Error: ' + error.message);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!email) return alert('Por favor escribe tu email primero.');
+        try {
+            await sendPasswordResetEmail(auth, email);
+            alert('Se ha enviado un correo de restablecimiento a ' + email);
+        } catch (e) {
+            alert('Error al enviar correo: ' + e.message);
         }
     };
 
@@ -1012,7 +1228,8 @@ const LandingView = ({ onSuperAdminLogin }) => {
                         <h2 className="text-2xl font-bold mb-6">Acceso Super Admin</h2>
                         <input className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white mb-4" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
                         <input type="password" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white mb-6" placeholder="Contraseña" value={pass} onChange={e => setPass(e.target.value)} />
-                        <button onClick={handleLogin} className="w-full bg-amber-500 text-slate-900 font-bold py-4 rounded-xl">ENTRAR</button>
+                        <button onClick={handleLogin} className="w-full bg-amber-500 text-slate-900 font-bold py-4 rounded-xl mb-4">ENTRAR</button>
+                        <button onClick={handleResetPassword} className="text-xs text-slate-400 hover:text-amber-500 underline block mx-auto">¿Olvidaste tu contraseña?</button>
                     </div>
                 </div>
             )}
@@ -1225,6 +1442,18 @@ const App = () => {
                 setBizSubtitle(data.subtitle || '');
                 setBizAdminEmail(data.adminEmail || '');
                 if (data.name) document.title = data.name;
+
+                // TRACK BUSINESS USAGE (If user is related admin)
+                if (user && user.email === data.adminEmail) {
+                    // Check if we need to update to avoid spamming writes (e.g. only once per hour or session)
+                    // For simplicity, we just write. Firestore limits are high enough for this scale.
+                    // But let's check local session to be nicer.
+                    const lastTracked = sessionStorage.getItem('last_track_' + appId);
+                    if (!lastTracked) {
+                        updateDoc(doc(db, 'businesses', appId), { lastLogin: new Date().toISOString() }).catch(console.error);
+                        sessionStorage.setItem('last_track_' + appId, 'true');
+                    }
+                }
             } else {
                 // Handle case where business ID in URL doesn't exist in DB
                 // For now, we allow it to load (assuming it's a legacy or manual artifact), 

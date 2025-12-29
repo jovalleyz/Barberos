@@ -932,13 +932,8 @@ const SuperAdminDashboard = ({ onLogout }) => {
             {/* New/Edit Business Modal */}
             <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
             <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
-            <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
-            {/* New/Edit Business Modal */}
-            <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
-            <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
-            <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
 
-            {/* Edit Profile Modal (Inline for now) */}
+            {/* Edit Profile Modal */}
             {showEditProfile && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-sm shadow-2xl">
@@ -964,15 +959,19 @@ const SuperAdminDashboard = ({ onLogout }) => {
                         onSave={async (newPass) => {
                             try {
                                 await updatePassword(auth.currentUser, newPass);
-                                setAlertData({ show: true, title: 'Éxito', msg: 'Contraseña actualizada' });
                                 setShowChangePass(false);
+                                setAlertData({ show: true, title: 'Éxito', msg: 'Contraseña actualizada' });
                             } catch (e) {
-                                setAlertData({ show: true, title: 'Error', msg: 'Debes volver a iniciar sesión para cambiar la clave.' });
+                                setShowChangePass(false); // Close modal on error too
+                                setAlertData({ show: true, title: 'Error', msg: 'Debes cerrar sesión y volver a entrar para cambiar la clave.' });
                             }
                         }}
                     />
                 </div>
             )}
+
+            {/* Alert Modal - MOVED TO END */}
+            <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
 
         </div >
     );

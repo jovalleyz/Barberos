@@ -92,7 +92,7 @@ const UpdateToast = ({ registration }) => {
 const ConfirmModal = ({ show, msg, onConfirm, onCancel }) => {
     if (!show) return null;
     return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
             <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
                 <div className="mx-auto w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
                     <AlertTriangle className="text-red-500" size={24} />
@@ -111,7 +111,7 @@ const ConfirmModal = ({ show, msg, onConfirm, onCancel }) => {
 const AlertModal = ({ show, title = "Aviso", msg, onClose }) => {
     if (!show) return null;
     return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
             <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
                 <div className="mx-auto w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center mb-4">
                     <Info className="text-amber-500" size={24} />

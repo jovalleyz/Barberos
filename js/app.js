@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle } from 'lucide-react';
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword } from "firebase/auth";
+import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, updateDoc, doc, onSnapshot, where, writeBatch, setDoc } from "firebase/firestore";
 import firebaseConfig from './js/config.js';
 
@@ -108,6 +108,22 @@ const ConfirmModal = ({ show, msg, onConfirm, onCancel }) => {
     );
 };
 
+const AlertModal = ({ show, title = "Aviso", msg, onClose }) => {
+    if (!show) return null;
+    return (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+                <div className="mx-auto w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center mb-4">
+                    <Info className="text-amber-500" size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-slate-400 text-sm mb-6">{msg}</p>
+                <button onClick={onClose} className="w-full py-3 bg-amber-500 text-slate-900 font-bold rounded-xl active:scale-95 transition-transform">Aceptar</button>
+            </div>
+        </div>
+    );
+};
+
 const SuccessModal = ({ show, onClose, appointmentDetails, allAppointments, isKiosk }) => {
     useEffect(() => { if (show && isKiosk) { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); } }, [show, isKiosk, onClose]);
     const queueCount = useMemo(() => {
@@ -157,23 +173,38 @@ const ServiceModal = ({ show, onClose, onSave, initialData }) => {
 const ChangePasswordView = ({ onSave, onCancel }) => {
     const [pass, setPass] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [showPass, setShowPass] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [alertData, setAlertData] = useState({ show: false, msg: '' });
+
     return (
         <div className="pb-24 px-4 pt-20 animate-fade-in">
             <h2 className="text-2xl font-bold mb-6 text-white">Cambiar Contraseña</h2>
             <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 max-w-md mx-auto">
                 <div className="mb-4">
                     <label className="text-slate-400 text-sm block mb-2">Nueva Contraseña</label>
-                    <input type="password" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={pass} onChange={e => setPass(e.target.value)} />
+                    <div className="relative">
+                        <input type={showPass ? "text" : "password"} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pr-10 text-white" value={pass} onChange={e => setPass(e.target.value)} />
+                        <button onClick={() => setShowPass(!showPass)} className="absolute right-3 top-3 text-slate-500 hover:text-white">
+                            {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
                 </div>
                 <div className="mb-6">
                     <label className="text-slate-400 text-sm block mb-2">Confirmar Contraseña</label>
-                    <input type="password" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={confirm} onChange={e => setConfirm(e.target.value)} />
+                    <div className="relative">
+                        <input type={showConfirm ? "text" : "password"} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pr-10 text-white" value={confirm} onChange={e => setConfirm(e.target.value)} />
+                        <button onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-3 text-slate-500 hover:text-white">
+                            {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={onCancel} className="flex-1 py-3 bg-slate-700 rounded-xl text-slate-300 font-bold">Cancelar</button>
-                    <button onClick={() => { if (pass !== confirm) return alert('No coinciden'); if (pass.length < 6) return alert('Mínimo 6 caracteres'); onSave(pass); }} className="flex-1 py-3 bg-amber-500 text-slate-900 font-bold rounded-xl">Actualizar</button>
+                    <button onClick={() => { if (pass !== confirm) return setAlertData({ show: true, msg: 'Las contraseñas no coinciden' }); if (pass.length < 6) return setAlertData({ show: true, msg: 'Mínimo 6 caracteres' }); onSave(pass); }} className="flex-1 py-3 bg-amber-500 text-slate-900 font-bold rounded-xl">Actualizar</button>
                 </div>
             </div>
+            <AlertModal show={alertData.show} msg={alertData.msg} onClose={() => setAlertData({ show: false, msg: '' })} />
         </div>
     );
 };
@@ -409,8 +440,23 @@ const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subt
     const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState(''); const [phone, setPhone] = useState('');
     const [error, setError] = useState(''); const [loading, setLoading] = useState(false); const [isLookup, setLookup] = useState(false);
     const getTabLabel = (m) => m === 'login' ? 'Acceder' : m === 'register' ? 'Registrarse' : 'Cita Express';
+
+    const handleReset = async () => {
+        if (!email.includes('@')) { setError('Ingresa tu correo'); return; }
+        setLoading(true);
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setError('Envio exitoso. Revisa tu correo.'); // Using error state for info message to save UI space
+        } catch (e) {
+            setError(e.message || 'Error al enviar');
+        }
+        setLoading(false);
+    };
+
     const handleAuth = async (e) => {
         e.preventDefault(); setError(''); setLoading(true);
+
+        // --- GUEST LOOKUP (By Phone) ---
         if (mode === 'guest' && isLookup) {
             const cp = cleanPhoneForSearch(phone);
             if (cp.length < 10) { setError('Teléfono inválido'); setLoading(false); return; }
@@ -422,14 +468,48 @@ const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subt
             } catch { setError('Error de conexión.'); }
             setLoading(false); return;
         }
-        setTimeout(() => {
-            const cp = cleanPhoneForSearch(phone);
-            if (mode === 'guest' && !isLookup) { if (!name.trim()) { setError('Nombre obligatorio'); setLoading(false); return; } if (cp.length < 10) { setError('Teléfono 10 dígitos'); setLoading(false); return; } }
-            if (mode === 'register') { if (!name.trim()) { setError('Nombre obligatorio'); setLoading(false); return; } if (!email.includes('@')) { setError('Correo inválido'); setLoading(false); return; } if (password.length < 6) { setError('Pass min 6'); setLoading(false); return; } }
-            if (mode === 'login') { if (!email.includes('@')) { setError('Correo inválido'); setLoading(false); return; } if (password.length < 1) { setError('Ingresa pass'); setLoading(false); return; } }
-            onLogin({ displayName: name || email.split('@')[0] || 'Invitado', email: mode === 'guest' ? '' : email, phone: mode === 'guest' ? cp : '', isAdmin: (mode === 'login' && email === ADMIN_EMAIL), isGuest: mode === 'guest' });
+
+        // --- AUTHENTICATION (Login / Register / Guest Create) ---
+        try {
+            if (mode === 'guest' && !isLookup) {
+                const cp = cleanPhoneForSearch(phone);
+                if (!name.trim()) throw new Error('Nombre obligatorio');
+                if (cp.length < 10) throw new Error('Teléfono 10 dígitos');
+                // Guests don't use Firebase Auth credentials in this flow, they just pass through locally
+                onLogin({ displayName: name, email: '', phone: cp, isAdmin: false, isGuest: true });
+            }
+            else if (mode === 'register') {
+                if (!name.trim()) throw new Error('Nombre obligatorio');
+                if (!email.includes('@')) throw new Error('Correo inválido');
+                if (password.length < 6) throw new Error('Pass min 6');
+
+                // Create user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                // Add displayName to local object passed to app (Firebase updateProfile is async, can be done later if needed)
+                onLogin({ ...user, displayName: name, isAdmin: false });
+            }
+            else if (mode === 'login') {
+                if (!email.includes('@')) throw new Error('Correo inválido');
+                if (password.length < 1) throw new Error('Ingresa pass');
+
+                // Sign in with Firebase Auth
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                onLogin({ ...user, isAdmin: false }); // isAdmin check happens in App component based on email
+            }
+        } catch (err) {
+            console.error(err);
+            if (err.message.includes('auth/invalid-credential') || err.message.includes('auth/wrong-password') || err.message.includes('auth/user-not-found')) {
+                setError('Credenciales incorrectas');
+            } else if (err.message.includes('auth/email-already-in-use')) {
+                setError('El correo ya está registrado');
+            } else {
+                setError(err.message || 'Error al conectar');
+            }
+        } finally {
             setLoading(false);
-        }, 800);
+        }
     };
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col justify-center p-6 text-slate-100">
@@ -444,6 +524,7 @@ const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subt
                     <button disabled={loading} className="w-full bg-amber-500 text-slate-900 font-bold py-2 rounded-lg">{loading ? '...' : 'CONTINUAR'}</button>
                 </form>
                 {mode === 'guest' && <div className="mt-4 text-center"><button onClick={() => { setLookup(!isLookup); setError(''); }} className="text-xs text-amber-500 underline">{isLookup ? 'Quiero agendar nueva' : '¿Ya tienes cita? Buscar'}</button></div>}
+                {mode === 'login' && <div className="mt-4 text-center flex justify-between px-2"><p onClick={handleReset} className="text-xs text-slate-400 hover:text-white cursor-pointer underline">¿Olvidaste tu clave?</p></div>}
                 {mode === 'login' && <div className="mt-6 pt-4 border-t border-slate-700 text-center"><p className="text-xs text-slate-500">OVM Consulting. Todos los derechos reservados 2025</p></div>}
             </div>
             {deferredPrompt && <button onClick={handleInstallClick} className="mt-8 mx-auto flex items-center gap-2 bg-slate-800 text-amber-500 px-6 py-3 rounded-full border border-amber-500/30 shadow-lg"><Download size={20} /> <span className="font-bold text-sm">INSTALAR APP</span></button>}
@@ -515,6 +596,8 @@ const SuperAdminDashboard = ({ onLogout }) => {
     const [stats, setStats] = useState({ active: 0, total: 0 });
     const [showModal, setShowModal] = useState(false);
     const [editingBiz, setEditingBiz] = useState(null); // For edit modal
+    const [deleteId, setDeleteId] = useState(null); // For delete modal
+    const [alertData, setAlertData] = useState({ show: false, title: '', msg: '' }); // Custom Alert State
     const [view, setView] = useState('home'); // home, stats, profile
 
     useEffect(() => {
@@ -544,20 +627,56 @@ const SuperAdminDashboard = ({ onLogout }) => {
             if (formData.id && editingBiz) {
                 // Edit existing
                 await updateDoc(doc(db, 'businesses', editingBiz.id), dataToSave);
-                alert('Negocio actualizado');
+                setAlertData({ show: true, title: 'Éxito', msg: 'Negocio actualizado correctamente.' });
             } else {
                 // Create New
-                if (!formData.id) return alert('ID requerido');
+                if (!formData.id) return setAlertData({ show: true, title: 'Error', msg: 'ID requerido' });
+                if (!formData.adminEmail || !formData.password) return setAlertData({ show: true, title: 'Error', msg: 'Email y Contraseña son requeridos para crear la cuenta' });
+
                 const newId = formData.id;
+
+                // 1. Create Auth User (Secondary App Pattern)
+                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+                const secondaryAuth = getAuth(secondaryApp);
+                try {
+                    await createUserWithEmailAndPassword(secondaryAuth, formData.adminEmail, formData.password);
+                    await deleteApp(secondaryApp); // Cleanup
+                } catch (authErr) {
+                    await deleteApp(secondaryApp); // Cleanup even on error
+                    if (authErr.code === 'auth/email-already-in-use') {
+                        // If user exists, we proceed (linking logic), but warn
+                        console.log('User already exists, linking business...');
+                    } else {
+                        throw authErr; // Stop creation if other auth error
+                    }
+                }
+
+                // 2. Create Create Business Doc
                 await setDoc(doc(db, 'businesses', newId), { ...dataToSave, createdAt: new Date().toISOString(), subscriptionStatus: 'paid' });
                 const batch = writeBatch(db);
                 DEFAULT_SERVICES.forEach(sv => batch.set(doc(collection(db, 'artifacts', newId, 'public', 'data', 'services')), sv));
                 batch.set(doc(db, 'artifacts', newId, 'public', 'data', 'settings', 'config'), { start: '09:00', end: '19:00' });
                 await batch.commit();
-                alert('Negocio creado. Link: ?id=' + newId);
+                setAlertData({ show: true, title: 'Éxito', msg: 'Negocio y Cuenta creados. Link: ?id=' + newId });
             }
             setShowModal(false); setEditingBiz(null);
-        } catch (e) { console.error(e); alert('Error al guardar'); }
+        } catch (e) {
+            console.error(e);
+            setAlertData({ show: true, title: 'Error', msg: e.message || 'Error al guardar.' });
+        }
+    };
+
+    const handleDeleteBusiness = (id) => {
+        setDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteId) return;
+        try {
+            await deleteDoc(doc(db, 'businesses', deleteId));
+            setAlertData({ show: true, title: 'Eliminado', msg: 'El negocio ha sido eliminado.' });
+        } catch (e) { console.error(e); setAlertData({ show: true, title: 'Error', msg: 'No se pudo eliminar.' }); }
+        setDeleteId(null);
     };
 
     const toggleStatus = async (id, currentStatus) => {
@@ -624,6 +743,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                 </div>
                                 <div className="flex gap-2 mt-2 pt-3 border-t border-slate-700">
                                     <button onClick={() => { setEditingBiz(biz); setShowModal(true); }} className="flex-1 py-3 bg-slate-700 rounded-lg text-blue-300 text-sm font-bold hover:bg-slate-600 uppercase tracking-wider">EDITAR</button>
+                                    <button onClick={() => handleDeleteBusiness(biz.id)} className="flex-1 py-3 bg-slate-700 rounded-lg text-red-400 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">ELIMINAR</button>
                                     <button onClick={() => toggleStatus(biz.id, biz.status)} className="flex-1 py-3 bg-slate-700 rounded-lg text-slate-300 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">
                                         {biz.status === 'active' ? 'Suspender' : 'Activar'}
                                     </button>
@@ -660,6 +780,9 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                         <td className="p-4 flex gap-2">
                                             <button onClick={() => { setEditingBiz(biz); setShowModal(true); }} className="p-2 hover:bg-slate-700 rounded-lg text-blue-400 hover:text-white transition-colors">
                                                 <Edit2 size={16} />
+                                            </button>
+                                            <button onClick={() => handleDeleteBusiness(biz.id)} className="p-2 hover:bg-red-900/30 rounded-lg text-red-500 hover:text-red-400 transition-colors">
+                                                <Trash2 size={16} />
                                             </button>
                                             <button onClick={() => toggleStatus(biz.id, biz.status)} className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
                                                 <RefreshCw size={16} />
@@ -766,6 +889,8 @@ const SuperAdminDashboard = ({ onLogout }) => {
 
             {/* New/Edit Business Modal */}
             <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
+            <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
+            <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
         </div >
     );
 };
@@ -1017,13 +1142,13 @@ const App = () => {
                 setBizName(data.name || 'Negocio');
                 setBizSubtitle(data.subtitle || '');
                 setBizAdminEmail(data.adminEmail || '');
+                if (data.name) document.title = data.name;
             } else {
                 // Handle case where business ID in URL doesn't exist in DB
                 // For now, we allow it to load (assuming it's a legacy or manual artifact), 
                 // but in strict mode we might block it.
+                document.title = "Barberos - Plataforma";
             }
-            if (data && data.name) document.title = data.name;
-            else document.title = "Barberos - Plataforma";
         });
 
         // 2. Data Subscriptions

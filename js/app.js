@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, updateProfile, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, updateDoc, doc, onSnapshot, where, writeBatch, setDoc } from "firebase/firestore";
 import firebaseConfig from './js/config.js';
 
@@ -597,8 +597,50 @@ const SuperAdminDashboard = ({ onLogout }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingBiz, setEditingBiz] = useState(null); // For edit modal
     const [deleteId, setDeleteId] = useState(null); // For delete modal
-    const [alertData, setAlertData] = useState({ show: false, title: '', msg: '' }); // Custom Alert State
-    const [view, setView] = useState('home'); // home, stats, profile
+    const [alertData, setAlertData] = useState({ show: false, title: '', msg: '' });
+    const [view, setView] = useState('home');
+
+    // Profile Feature States
+    const [showEditProfile, setShowEditProfile] = useState(false);
+    const [profileForm, setProfileForm] = useState({ displayName: '', phone: '' });
+
+    useEffect(() => {
+        if (view === 'profile' && auth.currentUser) {
+            setProfileForm({
+                displayName: auth.currentUser.displayName || 'Super Admin',
+                phone: auth.currentUser.phoneNumber || ''
+            });
+        }
+    }, [view]);
+
+    const handleUpdateProfile = async () => {
+        try {
+            await updateProfile(auth.currentUser, { displayName: profileForm.displayName });
+            // Phone update is complex in Firebase Auth (requires verification), so we'll just update display name for now or store phone in a doc if we had one.
+            // For this demo/MVP, we'll just update the Auth displayName.
+            setAlertData({ show: true, title: 'Éxito', msg: 'Perfil actualizado' });
+            setShowEditProfile(false);
+        } catch (e) {
+            console.error(e);
+            setAlertData({ show: true, title: 'Error', msg: 'No se pudo actualizar el perfil' });
+        }
+    };
+
+    const requestNotificationPermission = async () => {
+        if (!("Notification" in window)) {
+            setAlertData({ show: true, title: 'Error', msg: 'Este navegador no soporta notificaciones.' });
+            return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            new Notification("Barberos", { body: "Notificaciones activadas correctamente." });
+            setAlertData({ show: true, title: 'Éxito', msg: 'Notificaciones activadas y probadas.' });
+        } else {
+            setAlertData({ show: true, title: 'Aviso', msg: 'Permiso denegado.' });
+        }
+    };
+
+    const [showChangePass, setShowChangePass] = useState(false);
 
     useEffect(() => {
         document.title = "Barberos - Panel Super Admin"; // Set title
@@ -826,14 +868,14 @@ const SuperAdminDashboard = ({ onLogout }) => {
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg border-2 border-slate-600">SA</div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg">Super Admin</h3>
-                                    <p className="text-slate-400 text-sm">admin@saas.com</p>
+                                    <h3 className="text-white font-bold text-lg">{auth.currentUser?.displayName || 'Super Admin'}</h3>
+                                    <p className="text-slate-400 text-sm">{auth.currentUser?.email}</p>
                                     <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-500 border border-amber-500/30 font-bold uppercase">Master Access</span>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <button className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
+                                <button onClick={() => setShowEditProfile(true)} className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
                                     <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-white transition-colors"><Edit2 size={18} /></div>
                                     <div className="text-left flex-1">
                                         <p className="font-bold text-sm">Editar Información</p>
@@ -842,20 +884,20 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                     <ChevronRight size={18} className="text-slate-600" />
                                 </button>
 
-                                <button className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
+                                <button onClick={() => setShowChangePass(true)} className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
                                     <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-white transition-colors"><Lock size={18} /></div>
                                     <div className="text-left flex-1">
                                         <p className="font-bold text-sm">Seguridad</p>
-                                        <p className="text-xs text-slate-500">Cambiar Contraseña, 2FA</p>
+                                        <p className="text-xs text-slate-500">Cambiar Contraseña</p>
                                     </div>
                                     <ChevronRight size={18} className="text-slate-600" />
                                 </button>
 
-                                <button className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
+                                <button onClick={requestNotificationPermission} className="w-full bg-slate-700/50 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-4 transition-all border border-slate-700 group">
                                     <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-white transition-colors"><Bell size={18} /></div>
                                     <div className="text-left flex-1">
                                         <p className="font-bold text-sm">Notificaciones</p>
-                                        <p className="text-xs text-slate-500">Alertas del Sistema</p>
+                                        <p className="text-xs text-slate-500">Probar Alertas</p>
                                     </div>
                                     <ChevronRight size={18} className="text-slate-600" />
                                 </button>
@@ -891,6 +933,47 @@ const SuperAdminDashboard = ({ onLogout }) => {
             <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
             <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
             <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
+            {/* New/Edit Business Modal */}
+            <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
+            <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
+            <AlertModal show={alertData.show} title={alertData.title} msg={alertData.msg} onClose={() => setAlertData({ ...alertData, show: false })} />
+
+            {/* Edit Profile Modal (Inline for now) */}
+            {showEditProfile && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-sm shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 text-white">Editar Perfil</h3>
+                        <div className="mb-4">
+                            <label className="text-xs text-slate-400 block mb-2">Nombre</label>
+                            <input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={profileForm.displayName} onChange={e => setProfileForm({ ...profileForm, displayName: e.target.value })} />
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowEditProfile(false)} className="flex-1 py-3 bg-slate-700 rounded-xl text-slate-300">Cancelar</button>
+                            <button onClick={handleUpdateProfile} className="flex-1 py-3 bg-amber-500 text-slate-900 font-bold rounded-xl">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {showChangePass && (
+                <div className="fixed inset-0 z-[300] bg-slate-900/95 backdrop-blur-sm overflow-y-auto">
+                    <button onClick={() => setShowChangePass(false)} className="absolute top-4 right-4 text-slate-400"><X size={32} /></button>
+                    <ChangePasswordView
+                        onCancel={() => setShowChangePass(false)}
+                        onSave={async (newPass) => {
+                            try {
+                                await updatePassword(auth.currentUser, newPass);
+                                setAlertData({ show: true, title: 'Éxito', msg: 'Contraseña actualizada' });
+                                setShowChangePass(false);
+                            } catch (e) {
+                                setAlertData({ show: true, title: 'Error', msg: 'Debes volver a iniciar sesión para cambiar la clave.' });
+                            }
+                        }}
+                    />
+                </div>
+            )}
+
         </div >
     );
 };

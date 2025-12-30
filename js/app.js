@@ -209,14 +209,25 @@ const ChangePasswordView = ({ onSave, onCancel }) => {
     );
 };
 
-const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, bizSubtitle, onSaveBrand }) => {
+const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, bizSubtitle, onSaveBrand, onUploadImage, bizLogo }) => {
     const [start, setStart] = useState(settings.start || '09:00');
     const [end, setEnd] = useState(settings.end || '19:00');
     const [name, setName] = useState(bizName || '');
     const [sub, setSub] = useState(bizSubtitle || '');
+    const [logo, setLogo] = useState(bizLogo || '');
 
     // Sync state if props change
-    useEffect(() => { setName(bizName || ''); setSub(bizSubtitle || ''); }, [bizName, bizSubtitle]);
+    useEffect(() => { setName(bizName || ''); setSub(bizSubtitle || ''); setLogo(bizLogo || ''); }, [bizName, bizSubtitle, bizLogo]);
+
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            onUploadImage(file, 150, (base64) => {
+                setLogo(base64);
+                // Auto-save logic could go here or wait for "Actualizar Datos"
+            });
+        }
+    };
 
     return (
         <div className="pb-24 px-4 pt-20 animate-fade-in">
@@ -228,7 +239,22 @@ const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, biz
                     <div><label className="text-xs text-slate-400 block mb-2">Nombre Comercial</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={name} onChange={e => setName(e.target.value)} /></div>
                     <div><label className="text-xs text-slate-400 block mb-2">Slogan / Subtítulo</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={sub} onChange={e => setSub(e.target.value)} /></div>
                 </div>
-                <button onClick={() => onSaveBrand({ name, subtitle: sub })} className="w-full bg-slate-700 text-amber-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-600">ACTUALIZAR DATOS</button>
+
+                {/* LOGO UPLOAD */}
+                <div className="mb-6 border-t border-slate-700 pt-4">
+                    <label className="text-xs text-slate-400 block mb-2 font-bold uppercase">Logo del Negocio (150px)</label>
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden">
+                            {logo ? <img src={logo} alt="Logo" className="w-full h-full object-cover" /> : <Scissors className="text-slate-600" />}
+                        </div>
+                        <label className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                            SUBIR LOGO
+                            <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                        </label>
+                    </div>
+                </div>
+
+                <button onClick={() => onSaveBrand({ name, subtitle: sub, logo })} className="w-full bg-slate-700 text-amber-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-600">ACTUALIZAR DATOS</button>
             </div>
 
             <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6">
@@ -244,7 +270,7 @@ const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, biz
                 <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Lock size={18} /> Seguridad</h3>
                 <button onClick={onChangePass} className="w-full bg-slate-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-600">CAMBIAR CONTRASEÑA</button>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -414,6 +440,8 @@ const RevenueView = ({ appointments, downloadCSV, services }) => {
 };
 
 
+
+
 const BlockScheduleView = ({ blockedSlots, onSaveBlock, onDeleteBlock, timeSlots }) => {
     const [bDate, setBDate] = useState(''); const [bTimes, setBTimes] = useState([]); const [bAllDay, setBAllDay] = useState(false);
     const myBlocks = useMemo(() => blockedSlots.sort((a, b) => new Date(a.date) - new Date(b.date)), [blockedSlots]);
@@ -435,7 +463,7 @@ const BlockScheduleView = ({ blockedSlots, onSaveBlock, onDeleteBlock, timeSlots
     );
 };
 
-const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subtitle }) => {
+const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subtitle, bizLogo }) => {
     const [mode, setMode] = useState('login');
     const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState(''); const [phone, setPhone] = useState('');
     const [error, setError] = useState(''); const [loading, setLoading] = useState(false); const [isLookup, setLookup] = useState(false);
@@ -513,7 +541,7 @@ const AuthScreen = ({ onLogin, deferredPrompt, handleInstallClick, bizName, subt
     };
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col justify-center p-6 text-slate-100">
-            <div className="mb-6 text-center"><div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-white/20"><Scissors className="w-10 h-10 text-black" /></div><h1 className="text-4xl font-bold text-amber-500">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</h1><p className="text-slate-400 text-sm">{subtitle || 'Tu aplicación de reservas'}</p></div>
+            <div className="mb-6 text-center"><div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-white/20 overflow-hidden">{bizLogo ? <img src={bizLogo} alt="Logo" className="w-full h-full object-cover" /> : <Scissors className="w-10 h-10 text-black" />}</div><h1 className="text-4xl font-bold text-amber-500">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</h1><p className="text-slate-400 text-sm">{subtitle || 'Tu aplicación de reservas'}</p></div>
             <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700 shadow-xl">
                 <div className="flex border-b border-slate-700 mb-6">{['login', 'guest', 'register'].map(m => <button key={m} onClick={() => { setMode(m); setLookup(false); setError(''); }} className={`flex-1 py-2 text-xs font-bold uppercase ${mode === m ? 'text-amber-500 border-b-2 border-amber-500' : 'text-slate-500'}`}><span className={m === 'guest' ? 'text-neon' : ''}>{getTabLabel(m)}</span></button>)}</div>
                 <form onSubmit={handleAuth} className="space-y-4">
@@ -1311,15 +1339,29 @@ const LandingView = ({ onSuperAdminLogin }) => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-center p-6 text-white overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop')] bg-cover opacity-20 filter blur-sm"></div>
-            <div className="relative z-10 max-w-2xl">
-                <div className="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-amber-500/20 rotate-3 transform hover:rotate-6 transition-transform"><Scissors size={40} className="text-slate-900" /></div>
-                <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter">BARBER<span className="text-amber-500">OS</span></h1>
-                <p className="text-xl md:text-2xl text-slate-300 mb-10 font-light">La plataforma definitiva para gestionar tu barbería o estética.</p>
-                <div className="flex flex-col md:flex-row gap-4 justify-center">
-                    <button onClick={() => setShowLogin(true)} className="bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors">Iniciar Sesión</button>
-                    <a href="mailto:ventas@barberos.com" className="bg-amber-500/10 text-amber-500 border border-amber-500/50 px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-500 hover:text-slate-900 transition-all">Contáctanos</a>
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+            {/* Background Accents */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50"></div>
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
+
+            <div className="w-full max-w-sm relative z-10">
+                <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-2xl shadow-black/50 border border-slate-700 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        {bizLogo ? (
+                            <img src={bizLogo} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                            <Scissors size={40} className="text-amber-500 relative z-10" />
+                        )}
+                    </div>
+                    <h1 className="text-3xl font-black text-white tracking-tight mb-1">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</h1>
+                    <p className="text-sm text-slate-400 font-medium tracking-wide">{subtitle || 'Reserva tu estilo'}</p>
+                </div>
+
+                <div className="bg-slate-800 p-1 rounded-xl mb-8 flex relative data-[mode=guest]:border-amber-500/30 border border-slate-700">
+                    <button onClick={() => setShowLogin(true)} className="flex-1 bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors">Iniciar Sesión</button>
+                    <a href="mailto:ventas@barberos.com" className="flex-1 bg-amber-500/10 text-amber-500 border border-amber-500/50 px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-500 hover:text-slate-900 transition-all">Contáctanos</a>
                 </div>
             </div>
 
@@ -1364,6 +1406,8 @@ const App = () => {
     const [bizStatus, setBizStatus] = useState('active'); // active, suspended
     const [bizName, setBizName] = useState('');
     const [bizSubtitle, setBizSubtitle] = useState('');
+    const [bizLogo, setBizLogo] = useState(''); // New State
+    const [bizBanner, setBizBanner] = useState(''); // New State
     const [bizAdminEmail, setBizAdminEmail] = useState('');
 
 
@@ -1409,6 +1453,36 @@ const App = () => {
     function showToast(msg, type = 'success') { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
     function handleManualRefresh() { setIsSpinning(true); setRefreshKey(k => k + 1); showToast('Actualizando...'); setTimeout(() => setIsSpinning(false), 1000); };
     async function handleInstall() { if (deferredPrompt) { deferredPrompt.prompt(); if ((await deferredPrompt.userChoice).outcome === 'accepted') setDeferredPrompt(null); } };
+
+    // IMAGE UPLOAD HELPER
+    const handleImageUpload = (file, maxWidth, callback) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                // Compress to JPEG 0.7 quality
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                callback(dataUrl);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
     async function handleSaveService(data) { try { if (editingService) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'services', editingService.id), data); else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'services'), data); setShowServiceModal(false); setEditingService(null); } catch (e) { console.error(e); } };
 
     // UPDATED HANDLERS USING CUSTOM MODAL
@@ -1450,6 +1524,10 @@ const App = () => {
     async function handleSaveBrand(data) {
         try {
             await updateDoc(doc(db, 'businesses', appId), data);
+            if (data.name) setBizName(data.name);
+            if (data.subtitle) setBizSubtitle(data.subtitle);
+            if (data.logo) setBizLogo(data.logo);
+            if (data.banner) setBizBanner(data.banner);
             showToast('Información actualizada');
         } catch (e) { console.error(e); showToast('Error al guardar', 'error'); }
     };
@@ -1542,6 +1620,8 @@ const App = () => {
                 setBizStatus(data.status || 'active');
                 setBizName(data.name || 'Negocio');
                 setBizSubtitle(data.subtitle || '');
+                setBizLogo(data.logo || ''); // Load Logo
+                setBizBanner(data.banner || ''); // Load Banner
                 setBizAdminEmail(data.adminEmail || '');
                 if (data.name) document.title = data.name;
 
@@ -1621,7 +1701,7 @@ const App = () => {
 
     if (!appId) {
         if (isSuperAdmin) return <SuperAdminDashboard onLogout={() => setIsSuperAdmin(false)} />;
-        return <LandingView onSuperAdminLogin={() => setIsSuperAdmin(true)} />;
+        return <LandingView onSuperAdminLogin={() => setIsSuperAdmin(true)} bizName={bizName} subtitle={bizSubtitle} bizLogo={bizLogo} />;
     }
 
     if (bizStatus === 'suspended') return <PaymentPendingView name={bizName} />;
@@ -1636,10 +1716,78 @@ const App = () => {
 
         setUser(fullUser);
         setView(isAuthAdmin ? 'admin' : 'home');
-    }} deferredPrompt={deferredPrompt} handleInstallClick={handleInstall} bizName={bizName} subtitle={bizSubtitle} />;
+    }} deferredPrompt={deferredPrompt} handleInstallClick={handleInstall} bizName={bizName} subtitle={bizSubtitle} bizLogo={bizLogo} />;
 
     // RENDERERS
-    const renderHome = () => (<div className="pb-24 animate-fade-in"> <div className="relative h-64 bg-slate-800 mb-6 overflow-hidden rounded-b-3xl shadow-xl flex items-end p-6"> <img src="https://i.postimg.cc/FRFN6xdB/wmremove-transformed.png" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="Barber Background" /> <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent z-10" /> <div className="relative z-20"> <h2 className="text-amber-500 font-bold text-xs tracking-widest uppercase mb-1">{bizSubtitle || 'Professional Barber'}</h2> <h1 className="text-3xl font-extrabold leading-none">{bizName ? bizName.split(' ')[0].toUpperCase() : 'ESTILO'}<br />{bizName && bizName.split(' ').length > 1 ? bizName.split(' ').slice(1).join(' ').toUpperCase() : 'QUE DEFINE.'}</h1> {user?.isGuest && <div className="mt-2 inline-block bg-amber-500/20 text-amber-500 px-3 py-1 rounded-full text-xs font-bold border border-amber-500/50">MODO INVITADO</div>} </div> </div> <div className="px-6 space-y-4"> <div className="flex gap-4"><button onClick={() => setView('book')} className="flex-1 bg-amber-500 py-4 rounded-2xl text-slate-900 font-bold shadow-lg flex flex-col items-center gap-1"><Calendar /><span className="text-xs">RESERVAR</span></button><button onClick={() => setView('appointments')} className="flex-1 bg-slate-800 py-4 rounded-2xl border border-slate-700 flex flex-col items-center gap-1"><Clock /><span className="text-xs">MIS CITAS</span></button></div> <h3 className="font-bold text-lg">Servicios</h3> <div className="space-y-3">{services.map(s => <div key={s.id} className="bg-slate-800 p-4 rounded-xl flex items-center gap-4 border border-slate-700"><div className="text-amber-500 bg-slate-900 p-3 rounded-xl">{getIcon(s.iconName)}</div><div className="flex-1"><h4 className="font-bold">{s.title}</h4><p className="text-xs text-slate-400">RD$ {s.price}</p><p className="text-[10px] text-slate-500 line-clamp-1">{s.description}</p></div><button onClick={() => { setSelService(s); setView('book'); }} className="bg-slate-700 p-2 rounded-lg hover:bg-amber-500 hover:text-slate-900"><ChevronRight /></button></div>)}</div> </div> </div>);
+    const renderHome = () => (
+        <div className="pb-24 animate-fade-in relative min-h-screen">
+            {/* HERO BANNER */}
+            <div className="relative h-64 md:h-80 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent z-10" />
+                <img
+                    src={bizBanner || "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80"}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                />
+
+                {/* BANNER EDIT BUTTON (Admins Only) */}
+                {user?.isAdmin && (
+                    <label className="absolute top-20 right-4 z-20 bg-slate-900/80 p-2 rounded-full cursor-pointer hover:bg-amber-500 hover:text-white text-amber-500 border border-amber-500 transition-colors">
+                        <Edit2 size={20} />
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) handleImageUpload(file, 800, async (base64) => {
+                                setBizBanner(base64); // Optimistic UI
+                                await handleSaveBrand({ banner: base64 }); // Save immediately
+                            });
+                        }} />
+                    </label>
+                )}
+
+                <div className="absolute bottom-6 left-6 z-20">
+                    <p className="text-amber-500 font-bold text-sm tracking-wider mb-1">{bizSubtitle ? bizSubtitle.toUpperCase() : 'ESTÉTICA BONITA'}</p>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight shadow-black drop-shadow-lg">{bizName ? bizName.toUpperCase() : 'ESTÉTICA MARÍA'}</h1>
+                </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="px-6 -mt-8 relative z-30 flex gap-4">
+                <button onClick={() => setView('book')} className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 py-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 flex flex-col items-center gap-2 transition-all transform hover:-translate-y-1">
+                    <Calendar size={24} />
+                    RESERVAR
+                </button>
+                <button onClick={() => { if (user) setView('appointments'); else setView('book'); }} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-6 rounded-2xl font-bold text-lg shadow-xl border border-slate-700 flex flex-col items-center gap-2 transition-all transform hover:-translate-y-1">
+                    <Clock size={24} />
+                    MIS CITAS
+                </button>
+            </div>
+
+            {/* SERVICES LIST */}
+            <div className="px-6 mt-8">
+                <h2 className="text-xl font-bold text-white mb-4">Servicios</h2>
+                <div className="space-y-4">
+                    {services.map(s => (
+                        <div key={s.id} onClick={() => { setSelService(s); setView('book'); }} className="bg-slate-800 p-4 rounded-2xl flex items-center justify-between group hover:bg-slate-750 transition-colors cursor-pointer border border-transparent hover:border-amber-500/30">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                                    {getIcon(s.iconName)}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-lg">{s.title}</h3>
+                                    <p className="text-slate-400 text-sm">{s.price ? `RD$ ${s.price}` : 'Precio Variable'}</p>
+                                    <p className="text-xs text-slate-500">{s.description || 'Sin descripción'}</p>
+                                </div>
+                            </div>
+                            <div className="bg-slate-700 p-2 rounded-lg text-slate-400 group-hover:bg-amber-500 group-hover:text-slate-900 transition-colors">
+                                <ChevronRight size={20} />
+                            </div>
+                        </div>
+                    ))}
+                    {services.length === 0 && <p className="text-slate-500 text-center py-10">No hay servicios disponibles.</p>}
+                </div>
+            </div>
+        </div>
+    );
 
     const renderBooking = (isKioskMode = false) => (
         <div className={`animate-fade-in ${!isKioskMode && 'pb-24 px-6 pt-20'} ${isKioskMode && 'h-screen bg-slate-900 p-6 flex flex-col'}`}>
@@ -1739,7 +1887,7 @@ const App = () => {
             if (view === 'kiosk') return <KioskView appointments={appointments} onExit={() => setView('admin')} onExpress={startKioskBooking} bizName={bizName} subtitle={bizSubtitle} />;
             if (view === 'kiosk_auth') return <KioskAuth setView={setView} handleKioskGuestLogin={handleKioskGuestLogin} />;
             if (view === 'kiosk_book') return renderBooking(true);
-            if (view === 'profile') return <AdminProfileView settings={adminSettings} onSaveSettings={handleSaveSettings} onChangePass={() => setView('change_password')} bizName={bizName} bizSubtitle={bizSubtitle} onSaveBrand={handleSaveBrand} />;
+            if (view === 'profile') return <AdminProfileView settings={adminSettings} onSaveSettings={handleSaveSettings} onChangePass={() => setView('change_password')} bizName={bizName} bizSubtitle={bizSubtitle} bizLogo={bizLogo} onSaveBrand={handleSaveBrand} onUploadImage={handleImageUpload} />;
 
 
             const activeList = adminApps.filter(a => a.date >= todayStr);
@@ -1785,7 +1933,18 @@ const App = () => {
     return (
         <div className="min-h-screen bg-slate-900 font-sans text-white pb-safe">
             {view !== 'kiosk' && view !== 'kiosk_auth' && view !== 'kiosk_book' && (
-                <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur z-40 px-6 h-16 flex justify-between items-center border-b border-slate-800"><div className="flex items-center gap-2"><Scissors className="text-amber-500" /><span className="font-bold text-xl">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</span></div></header>
+                <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur z-40 px-6 h-16 flex justify-between items-center border-b border-slate-800 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                        {bizLogo ? (
+                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-700">
+                                <img src={bizLogo} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <Scissors className="text-amber-500" />
+                        )}
+                        <span className="font-bold text-xl tracking-tight">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</span>
+                    </div>
+                </header>
             )}
             <main className={view.startsWith('kiosk') ? '' : 'min-h-screen pt-16'}>{renderContent()}</main>
             {view !== 'kiosk' && view !== 'kiosk_auth' && view !== 'kiosk_book' && (

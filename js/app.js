@@ -591,11 +591,104 @@ const EditBusinessModal = ({ show, onClose, onSave, initialData }) => {
     );
 };
 
+
+
+const ServicesManagerModal = ({ show, onClose, businessId }) => {
+    const [services, setServices] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [showServiceModal, setShowServiceModal] = useState(false);
+    const [editingService, setEditingService] = useState(null);
+
+    useEffect(() => {
+        if (show && businessId) fetchServices();
+    }, [show, businessId]);
+
+    const fetchServices = async () => {
+        setLoading(true);
+        try {
+            const sn = await getDocs(collection(db, 'artifacts', businessId, 'public', 'data', 'services'));
+            const list = sn.docs.map(d => ({ id: d.id, ...d.data() }));
+            setServices(list);
+        } catch (e) {
+            console.error(e);
+            alert('Error cargando servicios');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async (data) => {
+        try {
+            if (editingService) {
+                await updateDoc(doc(db, 'artifacts', businessId, 'public', 'data', 'services', editingService.id), data);
+            } else {
+                await addDoc(collection(db, 'artifacts', businessId, 'public', 'data', 'services'), data);
+            }
+            fetchServices();
+            setShowServiceModal(false);
+            setEditingService(null);
+        } catch (e) {
+            console.error(e);
+            alert('Error guardando servicio');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('¿Borrar servicio?')) return;
+        try {
+            await deleteDoc(doc(db, 'artifacts', businessId, 'public', 'data', 'services', id));
+            fetchServices();
+        } catch (e) {
+            console.error(e);
+            alert('Error eliminando');
+        }
+    };
+
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 w-full max-w-lg shadow-2xl h-[80vh] flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white">Gestionar Servicios</h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-4">
+                    {loading ? <p className="text-center text-slate-500">Cargando...</p> : services.length === 0 ? <p className="text-center text-slate-500 italic">No hay servicios registrados.</p> : services.map(s => (
+                        <div key={s.id} className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="text-amber-500 p-2 bg-slate-800 rounded-lg">{getIcon(s.iconName)}</div>
+                                <div>
+                                    <h4 className="font-bold text-white">{s.title}</h4>
+                                    <p className="text-xs text-amber-500 font-bold">RD$ {s.price} <span className="text-slate-500 font-normal">• {s.duration}</span></p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => { setEditingService(s); setShowServiceModal(true); }} className="p-2 bg-slate-800 rounded-lg text-blue-400 hover:bg-slate-700"><Edit2 size={16} /></button>
+                                <button onClick={() => handleDelete(s.id)} className="p-2 bg-slate-800 rounded-lg text-red-400 hover:bg-slate-700"><Trash2 size={16} /></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <button onClick={() => { setEditingService(null); setShowServiceModal(true); }} className="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-4">
+                    <Plus size={20} /> Nuevo Servicio
+                </button>
+            </div>
+
+            {/* Reuse existing ServiceModal */}
+            <ServiceModal show={showServiceModal} onClose={() => setShowServiceModal(false)} onSave={handleSave} initialData={editingService} />
+        </div>
+    );
+};
+
 const SuperAdminDashboard = ({ onLogout }) => {
     const [businesses, setBusinesses] = useState([]);
     const [stats, setStats] = useState({ active: 0, total: 0 });
     const [showModal, setShowModal] = useState(false);
     const [editingBiz, setEditingBiz] = useState(null); // For edit modal
+    const [managingServicesBiz, setManagingServicesBiz] = useState(null); // For services modal
     const [deleteId, setDeleteId] = useState(null); // For delete modal
     const [alertData, setAlertData] = useState({ show: false, title: '', msg: '' });
 
@@ -979,6 +1072,9 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                     <button onClick={() => toggleStatus(biz.id, biz.status)} className="flex-1 py-3 bg-slate-700 rounded-lg text-slate-300 text-sm font-bold hover:bg-slate-600 transition-colors uppercase tracking-wider">
                                         {biz.status === 'active' ? 'Suspender' : 'Activar'}
                                     </button>
+                                    <button onClick={() => setManagingServicesBiz(biz)} className="p-3 bg-slate-700 rounded-lg text-amber-500 hover:bg-slate-600 transition-colors flex items-center justify-center">
+                                        <Scissors size={18} />
+                                    </button>
                                     <a href={`?id=${biz.id}`} target="_blank" className="p-3 bg-slate-700 rounded-lg text-slate-300 hover:bg-slate-600 transition-colors flex items-center justify-center">
                                         <Monitor size={18} />
                                     </a>
@@ -1018,6 +1114,9 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                             </button>
                                             <button onClick={() => toggleStatus(biz.id, biz.status)} className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
                                                 <RefreshCw size={16} />
+                                            </button>
+                                            <button onClick={() => setManagingServicesBiz(biz)} className="p-2 hover:bg-slate-700 rounded-lg text-amber-500 hover:text-amber-400 transition-colors" title="Gestionar Servicios">
+                                                <Scissors size={16} />
                                             </button>
                                             <a href={`?id=${biz.id}`} target="_blank" className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
                                                 <Monitor size={16} />
@@ -1138,6 +1237,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
 
             {/* New/Edit Business Modal */}
             <EditBusinessModal show={showModal} onClose={() => setShowModal(false)} onSave={handleSaveBusiness} initialData={editingBiz} />
+            <ServicesManagerModal show={!!managingServicesBiz} onClose={() => setManagingServicesBiz(null)} businessId={managingServicesBiz?.id} />
             <ConfirmModal show={!!deleteId} msg="¿Eliminar PERMANENTEMENTE este negocio?" onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
 
             {/* Edit Profile Modal */}
@@ -1693,6 +1793,7 @@ const App = () => {
                     {user?.isAdmin ? (
                         <div className="w-full flex justify-around">
                             <NavItem i={Home} l="Panel" id="admin" activeId={view} onSelect={setView} />
+                            <NavItem i={Scissors} l="Servicios" id="services" activeId={view} onSelect={setView} />
                             <NavItem i={Settings} l="Config" id="profile" activeId={view} onSelect={setView} />
                             <NavItem i={TrendingUp} l="Ingresos" id="revenue" activeId={view} onSelect={setView} />
                             <NavItem i={Lock} l="Bloqueos" id="blocks" activeId={view} onSelect={setView} />

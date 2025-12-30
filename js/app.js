@@ -797,7 +797,8 @@ const SuperAdminDashboard = ({ onLogout }) => {
                 // Edit Info Only (Cannot change pass/email easily in Auth from here without Admin SDK)
                 await updateDoc(doc(db, 'admin_users', editingMember.id), {
                     displayName: teamForm.displayName,
-                    phone: teamForm.phone
+                    phone: teamForm.phone,
+                    role: teamForm.role || 'sales'
                 });
                 setAlertData({ show: true, title: 'Éxito', msg: 'Miembro actualizado' });
             } else {
@@ -817,7 +818,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
                     email: teamForm.email,
                     displayName: teamForm.displayName,
                     phone: teamForm.phone || '',
-                    role: 'sales', // Default role
+                    role: teamForm.role || 'sales',
                     createdAt: new Date().toISOString(),
                     lastLogin: null
                 });
@@ -918,8 +919,9 @@ const SuperAdminDashboard = ({ onLogout }) => {
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Barberos</h1>
                     <p className="text-slate-400 text-xs">Panel de Super Admin</p>
                 </div>
-                <button onClick={onLogout} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors">
-                    <LogOut size={20} />
+                <button onClick={onLogout} className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20">
+                    <span className="text-xs font-bold">Cerrar Sesión</span>
+                    <LogOut size={16} />
                 </button>
             </div>
 

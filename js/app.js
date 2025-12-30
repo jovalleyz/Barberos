@@ -1523,10 +1523,10 @@ const App = () => {
     // Effects
     // Effects
     // Init Auth / PWA
-    useEffect(() => { const init = async () => { if (!auth.currentUser) await signInAnonymously(auth); }; init(); window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); setDeferredPrompt(e); }); return onAuthStateChanged(auth, firebaseUser => { if (firebaseUser) { const saved = localStorage.getItem('yoel_session'); if (saved) setUser({ ...firebaseUser, ...JSON.parse(saved) }); else setUser(firebaseUser); } else setUser(null); setLoading(false); }); }, []);
+    useEffect(() => { const init = async () => { if (!auth.currentUser) await signInAnonymously(auth); }; init(); window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); setDeferredPrompt(e); }); return onAuthStateChanged(auth, firebaseUser => { if (firebaseUser) { const saved = localStorage.getItem('yoel_session'); if (saved) { const parsed = JSON.parse(saved); if (parsed.isAdmin) setUser({ ...firebaseUser, ...parsed }); else setUser(null); } else setUser(firebaseUser); } else setUser(null); setLoading(false); }); }, []);
 
-    // User Session Persistence
-    useEffect(() => { if (user && user.displayName && !user.isAnonymous && (user.isAdmin !== undefined || user.isGuest !== undefined)) { const customData = { displayName: user.displayName, email: user.email, phone: user.phone, isAdmin: user.isAdmin, isGuest: user.isGuest }; localStorage.setItem('yoel_session', JSON.stringify(customData)); } }, [user]);
+    // User Session Persistence (Only for Admins now to ensure clients see landing)
+    useEffect(() => { if (user && user.isAdmin && !user.isAnonymous) { const customData = { displayName: user.displayName, email: user.email, phone: user.phone, isAdmin: user.isAdmin, isGuest: user.isGuest }; localStorage.setItem('yoel_session', JSON.stringify(customData)); } }, [user]);
 
     // Service Worker
     useEffect(() => { if ('serviceWorker' in navigator) navigator.serviceWorker.ready.then(registration => setSwRegistration(registration)); }, []);

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff, Users, Image as ImageIcon } from 'lucide-react';
+import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff, Users, Image as ImageIcon, Sparkles, Palette, Brush, Gem, Heart, Smile } from 'lucide-react';
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, updateProfile, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, updateDoc, doc, onSnapshot, where, writeBatch, setDoc } from "firebase/firestore";
@@ -27,7 +27,18 @@ const DEFAULT_SERVICES = [
     { category: 'Barba', title: 'Perfilado de Barba', price: 300, duration: '30 min', description: 'Alineación perfecta con navaja y toalla.', iconName: 'user' },
     { category: 'VIP', title: 'Experiencia Yoel', price: 1500, duration: '120 min', description: 'Corte, Barba, Mascarilla negra y Bebida de cortesía.', iconName: 'star' }
 ];
-const ICON_MAP = { scissors: Scissors, user: User, star: Star, zap: Zap };
+const ICON_MAP = {
+    scissors: Scissors,
+    user: User,
+    star: Star,
+    zap: Zap,
+    sparkles: Sparkles,
+    palette: Palette,
+    brush: Brush,
+    gem: Gem,
+    heart: Heart,
+    smile: Smile
+};
 const getIcon = (name) => { const I = ICON_MAP[name] || Scissors; return <I className="w-6 h-6" />; };
 
 // --- UTILS ---
@@ -162,7 +173,7 @@ const ServiceModal = ({ show, onClose, onSave, initialData }) => {
                     <div><label className="text-xs text-slate-400">Nombre</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ej: Corte" /></div>
                     <div className="flex gap-3"><div className="flex-1"><label className="text-xs text-slate-400">Precio</label><input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} /></div><div className="flex-1"><label className="text-xs text-slate-400">Duración</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} /></div></div>
                     <div><label className="text-xs text-slate-400">Descripción</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm" rows="3" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Detalles..." /></div>
-                    <div><label className="text-xs text-slate-400">Icono</label><div className="flex gap-2">{Object.keys(ICON_MAP).map(k => <button key={k} onClick={() => setForm({ ...form, iconName: k })} className={`p-3 rounded-lg border ${form.iconName === k ? 'bg-amber-500 text-slate-900 border-amber-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}>{getIcon(k)}</button>)}</div></div>
+                    <div><label className="text-xs text-slate-400">Icono</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(k => <button key={k} onClick={() => setForm({ ...form, iconName: k })} className={`p-3 rounded-lg border ${form.iconName === k ? 'bg-amber-500 text-slate-900 border-amber-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}>{getIcon(k)}</button>)}</div></div>
                 </div>
                 <div className="flex gap-3 mt-6"><button onClick={onClose} className="flex-1 py-3 bg-slate-700 rounded-xl text-slate-300">Cancelar</button><button onClick={() => onSave(form)} className="flex-1 py-3 bg-amber-500 text-slate-900 font-bold rounded-xl">Guardar</button></div>
             </div>
@@ -232,7 +243,7 @@ const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, biz
     const handleBannerChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            onUploadImage(file, 800, (base64) => {
+            onUploadImage(file, 1200, (base64) => {
                 setBanner(base64);
             });
         }
@@ -264,7 +275,7 @@ const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, biz
                 </div>
 
                 <div className="mb-6 border-t border-slate-700 pt-4">
-                    <label className="text-xs text-slate-400 block mb-2 font-bold uppercase">Banner del Negocio (800x300px)</label>
+                    <label className="text-xs text-slate-400 block mb-2 font-bold uppercase">Banner del Negocio (Recomendado 1200x400px)</label>
                     <div className="flex flex-col gap-4">
                         <div className="w-full h-32 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden relative group">
                             {banner ? <img src={banner} alt="Banner" className="w-full h-full object-cover" /> : <div className="text-slate-600 flex flex-col items-center"><ImageIcon size={32} /><span className="text-xs mt-1">Sin Banner</span></div>}
@@ -613,8 +624,8 @@ const KioskAuth = ({ setView, handleKioskGuestLogin }) => {
 };
 
 const EditBusinessModal = ({ show, onClose, onSave, initialData }) => {
-    const [form, setForm] = useState({ name: '', subtitle: '', adminEmail: '', status: 'active', password: '' });
-    useEffect(() => { if (initialData) setForm({ ...initialData, password: '' }); }, [initialData]);
+    const [form, setForm] = useState({ name: '', subtitle: '', adminEmail: '', status: 'active', password: '', subscriptionPrice: '', subscriptionFreq: 'monthly' });
+    useEffect(() => { if (initialData) setForm({ ...initialData, password: '', subscriptionPrice: initialData.subscriptionPrice || '', subscriptionFreq: initialData.subscriptionFreq || 'monthly' }); }, [initialData]);
     if (!show) return null;
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
@@ -629,6 +640,20 @@ const EditBusinessModal = ({ show, onClose, onSave, initialData }) => {
                     <div><label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Subtítulo / Slogan</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.subtitle} onChange={e => setForm({ ...form, subtitle: e.target.value })} placeholder="Ej: Estilo y Clase" /></div>
 
                     <div><label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Email Admin</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.adminEmail} onChange={e => setForm({ ...form, adminEmail: e.target.value })} /></div>
+
+                    <div className="flex gap-3">
+                        <div className="flex-1">
+                            <label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Costo Suscripción</label>
+                            <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.subscriptionPrice} onChange={e => setForm({ ...form, subscriptionPrice: Number(e.target.value) })} placeholder="0.00" />
+                        </div>
+                        <div className="w-1/3">
+                            <label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Frecuencia</label>
+                            <select className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3.5 text-white" value={form.subscriptionFreq} onChange={e => setForm({ ...form, subscriptionFreq: e.target.value })}>
+                                <option value="monthly">Mensual</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <div><label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Contraseña {initialData?.id ? '(Opcional/Reset)' : 'Inicial'}</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder={initialData?.id ? "Dejar vacío para no cambiar" : "Contraseña de acceso"} /></div>
                 </div>
@@ -985,10 +1010,10 @@ const SuperAdminDashboard = ({ onLogout }) => {
         <div className="p-4 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold font-bold text-white">Gestión de Equipo</h2>
+                    <h2 className="text-xl font-bold text-white">Equipo de Ventas</h2>
                     <p className="text-sm text-slate-400">Total: {team.length} administradores</p>
                 </div>
-                <button onClick={() => { setEditingMember(null); setTeamForm({ displayName: '', email: '', password: '', phone: '', role: 'sales' }); setShowTeamModal(true); }} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-xl font-bold flex items-center gap-2">
+                <button onClick={() => { setEditingMember(null); setTeamForm({ displayName: '', email: '', password: '', phone: '', role: 'sales', quotaAmount: '', quotaFreq: 'monthly' }); setShowTeamModal(true); }} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-xl font-bold flex items-center gap-2">
                     <Plus size={20} /> Nuevo Miembro
                 </button>
             </div>
@@ -1010,6 +1035,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                     </h3>
                                     <p className="text-sm text-slate-400">{member.email}</p>
                                     <p className="text-xs text-slate-500">{member.phone}</p>
+                                    {member.quotaAmount > 0 && <p className="text-xs text-green-400 font-mono mt-1">Meta: ${member.quotaAmount} ({member.quotaFreq === 'monthly' ? 'Mes' : 'Año'})</p>}
                                 </div>
                             </div>
 
@@ -1019,7 +1045,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
                                     <p className="text-xs font-mono text-green-400">{member.lastLogin ? new Date(member.lastLogin).toLocaleString() : 'Nunca'}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => { setEditingMember(member); setTeamForm({ displayName: member.displayName, email: member.email, phone: member.phone, password: '', role: member.role || 'sales' }); setShowTeamModal(true); }} className="p-2 bg-slate-700 rounded-lg text-blue-400 hover:bg-slate-600"><Edit2 size={18} /></button>
+                                    <button onClick={() => { setEditingMember(member); setTeamForm({ displayName: member.displayName, email: member.email, phone: member.phone, password: '', role: member.role || 'sales', quotaAmount: member.quotaAmount || '', quotaFreq: member.quotaFreq || 'monthly' }); setShowTeamModal(true); }} className="p-2 bg-slate-700 rounded-lg text-blue-400 hover:bg-slate-600"><Edit2 size={18} /></button>
                                     <button onClick={() => handleDeleteMember(member.id)} className="p-2 bg-slate-700 rounded-lg text-red-400 hover:bg-slate-600"><Trash2 size={18} /></button>
                                 </div>
                             </div>
@@ -1043,6 +1069,20 @@ const SuperAdminDashboard = ({ onLogout }) => {
                             {!editingMember && <div><label className="text-xs text-slate-400">Email</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.email} onChange={e => setTeamForm({ ...teamForm, email: e.target.value })} /></div>}
                             {!editingMember && <div><label className="text-xs text-slate-400">Contraseña</label><input type="password" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.password} onChange={e => setTeamForm({ ...teamForm, password: e.target.value })} /></div>}
                             <div><label className="text-xs text-slate-400">Teléfono</label><input className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.phone} onChange={e => setTeamForm({ ...teamForm, phone: e.target.value })} /></div>
+
+                            <div className="flex gap-3 pt-2 border-t border-slate-700">
+                                <div className="flex-1">
+                                    <label className="text-xs text-slate-400">Meta / Cuota</label>
+                                    <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white" value={teamForm.quotaAmount} onChange={e => setTeamForm({ ...teamForm, quotaAmount: Number(e.target.value) })} placeholder="0.00" />
+                                </div>
+                                <div className="w-1/3">
+                                    <label className="text-xs text-slate-400">Frecuencia</label>
+                                    <select className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3.5 text-white" value={teamForm.quotaFreq} onChange={e => setTeamForm({ ...teamForm, quotaFreq: e.target.value })}>
+                                        <option value="monthly">Mensual</option>
+                                        <option value="yearly">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex gap-3">
                             <button onClick={() => setShowTeamModal(false)} className="flex-1 py-3 bg-slate-700 rounded-xl text-slate-300">Cancelar</button>
@@ -1073,14 +1113,14 @@ const SuperAdminDashboard = ({ onLogout }) => {
                     {/* Stats Cards */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 relative overflow-hidden">
-                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Negocios Activos</h3>
-                            <p className="text-3xl font-bold text-white mb-2">{stats.active}</p>
-                            <Home size={32} className="absolute top-4 right-4 text-slate-700" />
+                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1 relative z-10">Negocios Activos</h3>
+                            <p className="text-3xl font-bold text-white mb-2 relative z-10">{stats.active}</p>
+                            <Home size={64} className="absolute -bottom-4 -right-4 text-slate-700/50" />
                         </div>
                         <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 relative overflow-hidden">
-                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Total Registrados</h3>
-                            <p className="text-3xl font-bold text-white mb-2">{stats.total}</p>
-                            <User size={32} className="absolute top-4 right-4 text-slate-700" />
+                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1 relative z-10">Total Registrados</h3>
+                            <p className="text-3xl font-bold text-white mb-2 relative z-10">{stats.total}</p>
+                            <User size={64} className="absolute -bottom-4 -right-4 text-slate-700/50" />
                         </div>
                     </div>
 
@@ -1184,11 +1224,29 @@ const SuperAdminDashboard = ({ onLogout }) => {
             {
                 view === 'stats' && (
                     <div className="p-4 animate-fade-in">
-                        <h2 className="text-xl font-bold text-white mb-6">Estadísticas</h2>
-                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-4">
-                            <p className="text-slate-400 text-xs uppercase font-bold mb-2">Ingresos Estimados (Mensual)</p>
-                            <p className="text-4xl font-bold text-green-400">${totalRevenue.toLocaleString()}</p>
-                            <p className="text-xs text-slate-500 mt-2">Calculado: {stats.active} negocios x $5,000</p>
+                        <h2 className="text-xl font-bold text-white mb-6">Estadísticas de Ingresos</h2>
+
+                        {/* Revenue Filter Selector */}
+                        <div className="bg-slate-800 p-1 rounded-xl flex mb-6 border border-slate-700 w-full max-w-sm">
+                            <button onClick={() => setRevenueFilter('monthly')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${revenueFilter === 'monthly' ? 'bg-amber-500 text-slate-900 shadow-lg' : 'text-slate-400 hover:text-white'}`}>Mensual</button>
+                            <button onClick={() => setRevenueFilter('yearly')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${revenueFilter === 'yearly' ? 'bg-amber-500 text-slate-900 shadow-lg' : 'text-slate-400 hover:text-white'}`}>Anual</button>
+                        </div>
+
+                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-4 overflow-hidden relative">
+                            <h3 className="text-slate-400 text-xs uppercase font-bold mb-2 relative z-10">Ingresos Estimados ({revenueFilter === 'monthly' ? 'Mensual' : 'Anual'})</h3>
+                            <p className="text-4xl font-bold text-green-400 relative z-10">
+                                ${businesses.reduce((acc, biz) => {
+                                    const price = biz.subscriptionPrice || 0;
+                                    const freq = biz.subscriptionFreq || 'monthly';
+                                    if (revenueFilter === 'monthly') {
+                                        return acc + (freq === 'monthly' ? price : price / 12);
+                                    } else {
+                                        return acc + (freq === 'yearly' ? price : price * 12);
+                                    }
+                                }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-2 relative z-10">Basado en {businesses.filter(b => (b.subscriptionPrice || 0) > 0).length} suscripciones activas.</p>
+                            <DollarSign size={80} className="absolute -bottom-6 -right-6 text-green-500/10" />
                         </div>
 
                         <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 text-center flex flex-col items-center justify-center min-h-[200px]">
@@ -1433,6 +1491,7 @@ const PaymentPendingView = ({ name }) => (
 const App = () => {
     const [user, setUser] = useState(null);
     const [view, setView] = useState('home');
+    const [revenueFilter, setRevenueFilter] = useState('monthly'); // monthly, yearly
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [bizStatus, setBizStatus] = useState('active'); // active, suspended
     const [bizName, setBizName] = useState('');
@@ -1632,7 +1691,7 @@ const App = () => {
     // Effects
     // Effects
     // Init Auth / PWA
-    useEffect(() => { const init = async () => { if (!auth.currentUser) await signInAnonymously(auth); }; init(); window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); setDeferredPrompt(e); }); return onAuthStateChanged(auth, firebaseUser => { if (firebaseUser) { const saved = localStorage.getItem('yoel_session'); if (saved) { const parsed = JSON.parse(saved); if (parsed.isAdmin) setUser({ ...firebaseUser, ...parsed }); else setUser(null); } else setUser(firebaseUser); } else setUser(null); setLoading(false); }); }, []);
+    useEffect(() => { const init = async () => { if (!auth.currentUser) { /* await signInAnonymously(auth); */ } }; init(); window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); setDeferredPrompt(e); }); return onAuthStateChanged(auth, firebaseUser => { if (firebaseUser) { const saved = localStorage.getItem('yoel_session'); if (saved) { const parsed = JSON.parse(saved); if (parsed.isAdmin) setUser({ ...firebaseUser, ...parsed }); else setUser(null); } else setUser(firebaseUser); } else setUser(null); setLoading(false); }); }, []);
 
     // User Session Persistence (Only for Admins now to ensure clients see landing)
     useEffect(() => { if (user && user.isAdmin && !user.isAnonymous) { const customData = { displayName: user.displayName, email: user.email, phone: user.phone, isAdmin: user.isAdmin, isGuest: user.isGuest }; localStorage.setItem('yoel_session', JSON.stringify(customData)); } }, [user]);

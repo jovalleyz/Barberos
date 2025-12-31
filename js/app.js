@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff, Users } from 'lucide-react';
+import { Scissors, Calendar, User, Home, Bell, Clock, ChevronRight, Star, LogOut, CheckCircle, X, Phone, Trash2, RefreshCw, Shield, DollarSign, AlertCircle, Smartphone, Zap, Search, Filter, Download, Plus, Edit2, Settings, TrendingUp, PieChart, Info, Lock, Unlock, CalendarOff, FileSpreadsheet, Check, Monitor, ArrowLeft, Save, AlertTriangle, Eye, EyeOff, Users, Image as ImageIcon } from 'lucide-react';
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, updatePassword, updateProfile, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, updateDoc, doc, onSnapshot, where, writeBatch, setDoc } from "firebase/firestore";
@@ -209,22 +209,31 @@ const ChangePasswordView = ({ onSave, onCancel }) => {
     );
 };
 
-const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, bizSubtitle, onSaveBrand, onUploadImage, bizLogo }) => {
+const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, bizSubtitle, onSaveBrand, onUploadImage, bizLogo, bizBanner }) => {
     const [start, setStart] = useState(settings.start || '09:00');
     const [end, setEnd] = useState(settings.end || '19:00');
     const [name, setName] = useState(bizName || '');
     const [sub, setSub] = useState(bizSubtitle || '');
     const [logo, setLogo] = useState(bizLogo || '');
+    const [banner, setBanner] = useState(bizBanner || '');
 
     // Sync state if props change
-    useEffect(() => { setName(bizName || ''); setSub(bizSubtitle || ''); setLogo(bizLogo || ''); }, [bizName, bizSubtitle, bizLogo]);
+    useEffect(() => { setName(bizName || ''); setSub(bizSubtitle || ''); setLogo(bizLogo || ''); setBanner(bizBanner || ''); }, [bizName, bizSubtitle, bizLogo, bizBanner]);
 
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             onUploadImage(file, 150, (base64) => {
                 setLogo(base64);
-                // Auto-save logic could go here or wait for "Actualizar Datos"
+            });
+        }
+    };
+
+    const handleBannerChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            onUploadImage(file, 800, (base64) => {
+                setBanner(base64);
             });
         }
     };
@@ -254,7 +263,20 @@ const AdminProfileView = ({ settings, onSaveSettings, onChangePass, bizName, biz
                     </div>
                 </div>
 
-                <button onClick={() => onSaveBrand({ name, subtitle: sub, logo })} className="w-full bg-slate-700 text-amber-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-600">ACTUALIZAR DATOS</button>
+                <div className="mb-6 border-t border-slate-700 pt-4">
+                    <label className="text-xs text-slate-400 block mb-2 font-bold uppercase">Banner del Negocio (800x300px)</label>
+                    <div className="flex flex-col gap-4">
+                        <div className="w-full h-32 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden relative group">
+                            {banner ? <img src={banner} alt="Banner" className="w-full h-full object-cover" /> : <div className="text-slate-600 flex flex-col items-center"><ImageIcon size={32} /><span className="text-xs mt-1">Sin Banner</span></div>}
+                        </div>
+                        <label className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-3 rounded-lg cursor-pointer transition-colors text-center">
+                            SUBIR BANNER
+                            <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+                        </label>
+                    </div>
+                </div>
+
+                <button onClick={() => onSaveBrand({ name, subtitle: sub, logo, banner })} className="w-full bg-slate-700 text-amber-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-600">ACTUALIZAR DATOS</button>
             </div>
 
             <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6">
@@ -1654,7 +1676,7 @@ const App = () => {
         });
 
         // 2. Data Subscriptions
-        const u1 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'services')), s => { if (s.empty) { const b = writeBatch(db); DEFAULT_SERVICES.forEach(sv => b.set(doc(collection(db, 'artifacts', appId, 'public', 'data', 'services')), sv)); b.commit(); } else setServices(s.docs.map(d => ({ id: d.id, ...d.data() }))); });
+        const u1 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'services')), s => { setServices(s.docs.map(d => ({ id: d.id, ...d.data() }))); });
         const u2 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'appointments')), s => setAppointments(s.docs.map(d => ({ id: d.id, ...d.data() }))));
         const u3 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'blocked_slots')), s => setBlockedSlots(s.docs.map(d => ({ id: d.id, ...d.data() }))));
         const u4 = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), s => { if (s.exists()) setAdminSettings(s.data()); });
@@ -1896,7 +1918,7 @@ const App = () => {
             if (view === 'kiosk') return <KioskView appointments={appointments} onExit={() => setView('admin')} onExpress={startKioskBooking} bizName={bizName} subtitle={bizSubtitle} />;
             if (view === 'kiosk_auth') return <KioskAuth setView={setView} handleKioskGuestLogin={handleKioskGuestLogin} />;
             if (view === 'kiosk_book') return renderBooking(true);
-            if (view === 'profile') return <AdminProfileView settings={adminSettings} onSaveSettings={handleSaveSettings} onChangePass={() => setView('change_password')} bizName={bizName} bizSubtitle={bizSubtitle} bizLogo={bizLogo} onSaveBrand={handleSaveBrand} onUploadImage={handleImageUpload} />;
+            if (view === 'profile') return <AdminProfileView settings={adminSettings} onSaveSettings={handleSaveSettings} onChangePass={() => setView('change_password')} bizName={bizName} bizSubtitle={bizSubtitle} bizLogo={bizLogo} bizBanner={bizBanner} onSaveBrand={handleSaveBrand} onUploadImage={handleImageUpload} />;
 
 
             const activeList = adminApps.filter(a => a.date >= todayStr);

@@ -1313,7 +1313,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
 };
 
 // Landing View for users visiting root URL without ID
-const LandingView = ({ onSuperAdminLogin }) => {
+const LandingView = ({ onSuperAdminLogin, bizName, subtitle, bizLogo }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [email, setEmail] = useState(''); const [pass, setPass] = useState('');
 
@@ -1340,28 +1340,37 @@ const LandingView = ({ onSuperAdminLogin }) => {
 
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
-            {/* Background Accents */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50"></div>
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
+            {/* Background Image */}
+            <div className="absolute inset-0 z-0">
+                <img
+                    src={bizLogo ? "" : "https://images.unsplash.com/photo-1503951914875-befea7470dac?w=800&q=80"}
+                    alt="Background"
+                    className={`w-full h-full object-cover ${bizLogo ? 'hidden' : 'opacity-40'}`}
+                />
+                <div className="absolute inset-0 bg-slate-900/80"></div>
+            </div>
 
-            <div className="w-full max-w-sm relative z-10">
-                <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-2xl shadow-black/50 border border-slate-700 relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            {/* Background Accents */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50 z-10"></div>
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl z-10"></div>
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl z-10"></div>
+
+            <div className="w-full max-w-sm relative z-20">
+                <div className="text-center mb-12">
+                    <div className="w-24 h-24 bg-amber-500 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-2xl shadow-amber-500/20 transform rotate-3">
                         {bizLogo ? (
-                            <img src={bizLogo} alt="Logo" className="w-full h-full object-cover" />
+                            <img src={bizLogo} alt="Logo" className="w-full h-full object-cover rounded-3xl" />
                         ) : (
-                            <Scissors size={40} className="text-amber-500 relative z-10" />
+                            <Scissors size={48} className="text-slate-900" />
                         )}
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tight mb-1">{bizName ? bizName.toUpperCase() : 'BARBEROS'}</h1>
-                    <p className="text-sm text-slate-400 font-medium tracking-wide">{subtitle || 'Reserva tu estilo'}</p>
+                    <h1 className="text-4xl font-black text-white tracking-tight mb-4">{bizName ? bizName.toUpperCase() : <span className="flex items-center justify-center gap-1">BARBER<span className="text-amber-500">OS</span></span>}</h1>
+                    <p className="text-slate-300 text-lg leading-relaxed">{subtitle || 'La plataforma definitiva para gestionar tu barbería o estética.'}</p>
                 </div>
 
-                <div className="bg-slate-800 p-1 rounded-xl mb-8 flex relative data-[mode=guest]:border-amber-500/30 border border-slate-700">
-                    <button onClick={() => setShowLogin(true)} className="flex-1 bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors">Iniciar Sesión</button>
-                    <a href="mailto:ventas@barberos.com" className="flex-1 bg-amber-500/10 text-amber-500 border border-amber-500/50 px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-500 hover:text-slate-900 transition-all">Contáctanos</a>
+                <div className="space-y-4">
+                    <button onClick={() => setShowLogin(true)} className="w-full bg-white text-slate-900 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition-colors shadow-lg">Iniciar Sesión</button>
+                    <a href="mailto:ventas@barberos.com" className="block w-full text-center py-4 rounded-xl font-bold text-lg text-amber-500 border border-amber-500/30 hover:bg-amber-500/10 transition-colors">Contáctanos</a>
                 </div>
             </div>
 
